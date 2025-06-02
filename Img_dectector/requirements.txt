@@ -1,0 +1,9 @@
+roboflow 
+ultralytics 
+supervision
+opencv-python
+matplotlib
+numpy
+requests
+# aws sdk (S3 bucket and dynamnoDB interaction)
+boto3
