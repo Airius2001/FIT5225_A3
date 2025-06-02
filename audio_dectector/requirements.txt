@@ -1,0 +1,7 @@
+birdnetlib
+# open up the audio
+librosa
+tensorflow
+# processing audio
+resampy
+boto3

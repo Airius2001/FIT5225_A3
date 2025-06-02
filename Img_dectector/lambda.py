@@ -5,10 +5,73 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import requests
+import boto3
+
+from collections import Counter
 
 
+s3_client = boto3.client('s3')
+dynamodb = boto3.resource('dynamodb')
+TABLE = "media"
+
+# s3 event handling logic
 def handler(event, context):
-    return 
+    for record in event['Records']:
+        bucket = record['s3']['bucket']['name']
+        key = record['s3']['object']['key']
+
+        # download the image from S3
+        tmp_path = f"/tmp/{key.split('/')[-1]}"
+        s3_client.download_file(bucket, key, tmp_path)
+
+        # Call the image_prediction function
+        labels = []
+        if key.startswith('images/'): # the folder name from AWS S3 bucket
+            labels = image_prediction(tmp_path)
+            # resize the image size to thumbnails
+            b = create_thumbnail(tmp_path)
+            s3_client.put_object(
+                Bucket = bucket,
+                Key = f"thumbnails/{key.split('/')[-1]}",
+                Body = b,
+                ContentType = 'mimetype',
+                ContentDisposition = 'inline'
+            )
+
+        elif key.startswith('videos/'): # the folder name from AWS S3 bucket
+            labels = video_prediction(tmp_path)
+        else:
+            print(f'Unsupported file type for key: {key}')
+            return
+        labels_total = Counter(labels)
+
+        try:
+            dynamodb.Table(TABLE).put_item(
+                Item = {
+                    's3-url': "https://{0}.s3.us-east-1.amazonaws.com/{1}".format(bucket,key),
+                    'tags': labels_total
+                }
+            )
+        except boto3.ClientError as err:
+            print(f"Error saving to DynamoDB: {err}")
+        except Exception as e:
+            print(f"Unexpected error occured: {e}")
+
+
+def create_thumbnail(image_path, width = 150, height = 150):
+    _ ,ext = os.path.splittext(image_path)
+    img = cv.imread(image_path)
+    if img is None:
+        print("Can not load the image, please check the path")
+        return None
+    thumbnail = cv.resize(img, (width, height))
+    ok, buffer = cv.imencode(ext, thumbnail)
+    if not ok:
+        print("Error encoding the image.")
+        return None
+    
+    return buffer.tobytes()
+    
 
 # image prediction function
 def image_prediction(image_path, confidence=0.5, model="./model.pt"):
@@ -112,6 +175,6 @@ def video_prediction(video_path, result_filename=None, save_dir = "./video_predi
 
 if __name__ == '__main__':
     print("predicting...")
-    # print(image_prediction("./test_images/crows_1.jpg"))
-    print(video_prediction("./test_videos/crows.mp4",result_filename='crows_detected.mp4'))
+    print(image_prediction("./test_images/crows_1.jpg"))
+    # print(video_prediction("./test_videos/crows.mp4",result_filename='crows_detected.mp4'))
 

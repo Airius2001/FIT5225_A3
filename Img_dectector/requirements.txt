@@ -1,7 +1,8 @@
 roboflow 
 ultralytics 
 supervision
-opencv-python
+# avoid install unnecessary libs
+opencv-python-headless
 matplotlib
 numpy
 requests
