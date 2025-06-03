@@ -16,11 +16,33 @@ TABLE = "media"
 
 # s3 event handling logic
 def handler(event, context):
-    for record in event['Records']:
-        bucket = record['s3']['bucket']['name']
-        key = record['s3']['object']['key']
+    """
+    AWS Lambda function entry point to handle S3 file upload events.
+    
+    Args:    
+    event (dict): AWS Lambda event object containing S3 trigger information    
+    context (object): Lambda runtime context object
+    
+    Returns:    
+    None: No explicit return value
+    
+    Notes:
+    - Automatically handles images/videos uploaded to S3
+    - Generates thumbnails for images
+    - Detects bird species in files and logs to DynamoDB
+    - Errors will be logged but will not interrupt processing
+    """
 
-        # download the image from S3
+    # Traverse all records in the event
+    for record in event['Records']:
+        # Analysis of S3 Event Basic Information
+        bucket = record['s3']['bucket']['name']
+        # File object key (path)
+        key = record['s3']['object']['key'] 
+
+        # Download the file to the Lambda temporary directory
+        # tmp_path: Local temporary file path (e.g., /tmp/filename.jpg)
+
         tmp_path = f"/tmp/{key.split('/')[-1]}"
         s3_client.download_file(bucket, key, tmp_path)
 
@@ -43,6 +65,9 @@ def handler(event, context):
         else:
             print(f'Unsupported file type for key: {key}')
             return
+        
+        # Count the occurrences of tags (using Counter)
+        # For example: ["crow","pigeon","crow"] -> {"crow":2, "pigeon":1}
         labels_total = Counter(labels)
 
         try:
@@ -58,34 +83,61 @@ def handler(event, context):
             print(f"Unexpected error occured: {e}")
 
 
+
+#  transfer the image to thumbnail image
 def create_thumbnail(image_path, width = 150, height = 150):
-    _ ,ext = os.path.splittext(image_path)
+    """
+    Generate a thumbnail from the image file at the given path and return the binary data of the thumbnail.
+    Parameters:
+        image_path (str): The path to the original image 
+        filewidth (int): The width of the thumbnail (default 150px)
+        height (int): The height of the thumbnail (default 150px)
+        Returns:bytes: The binary data of the thumbnail, returns None on failure
+        Raises:No explicit exceptions are raised, but file operation-related exceptions may be implicitly raised.
+    """
+    # Get file extension
+    _ ,ext = os.path.splitext(image_path)
+    # Read the original image file
     img = cv.imread(image_path)
     if img is None:
         print("Can not load the image, please check the path")
         return None
-    thumbnail = cv.resize(img, (width, height))
-    ok, buffer = cv.imencode(ext, thumbnail)
-    if not ok:
-        print("Error encoding the image.")
+    try:
+        # Adjust the image size to the specified width and height.
+        thumbnail = cv.resize(img, (width, height))
+        ok, buffer = cv.imencode(ext, thumbnail)
+        
+        if not ok:
+            print("Image encoding failed")
+            return None
+        
+        # Return the binary data of the thumbnail.
+        return buffer.tobytes()
+    except Exception as e:
+        print(f"An error occurred while generating the thumbnail.: {str(e)}")
         return None
-    
-    return buffer.tobytes()
     
 
 # image prediction function
 def image_prediction(image_path, confidence=0.5, model="./model.pt"):
     """
-    Function to display predictions of a pre-trained YOLO model on a given image.
+    Use the YOLO model to perform object detection on the input image and return a list of detected bird labels.
 
-    Parameters:
-        image_path (str): Path to the image file. Can be a local path or a URL.
-        result_path (str): If not None, this is the output filename.
-        confidence (float): 0-1, only results over this value are saved.
-        model (str): path to the model.
+    Args:
+    image_path (str): Path to the image file to be detected.
+    confidence (float): Confidence threshold (0-1), default is 0.5.
+    model (str): Path to the YOLO model file, default is "./model.pt".
+    Returns:list: List of detected bird labels (e.g., ["crow", "pigeon"]); returns None on failure.
+
+    Notes:
+    - Uses the Ultralytics YOLO model for detection.
+    - Relies on OpenCV to read the image.
+    - Uses the supervision library to process detection results.
     """
 
-    # Load YOLO model
+    # Load the YOLO model
+    # model: the loaded YOLO model object
+    # class_dict: dictionary of categories supported by the model (e.g., {0: "crow", 1: "pigeon"})
     model = YOLO(model)
     class_dict = model.names
 
@@ -117,14 +169,26 @@ def image_prediction(image_path, confidence=0.5, model="./model.pt"):
 # ## Video Detection
 def video_prediction(video_path, result_filename=None, save_dir = "./video_prediction_results", confidence=0.5, model="./model.pt"):
     """
-    Function to make predictions on video frames using a trained YOLO model and display the video with annotations.
-
-    Parameters:
-        video_path (str): Path to the video file.
-        save_video (bool): If True, saves the video with annotations. Default is False.
-        filename (str): The name of the output file where the video will be saved if save_video is True.
+    Use the YOLO model for frame-by-frame object detection on a video, returning all detected bird labels.
+    
+    Args:
+    video_path (str): Input video file 
+    pathresult_filename (str, optional): Result save file name, default None (does not save)
+    save_dir (str): Result save directory, default "./video_prediction_results"
+    confidence (float): Confidence threshold (0-1), default 0.5
+    model (str): YOLO model file path, default "./model.pt"
+    
+    Returns:
+    list: List of all bird labels detected in the video (e.g. ["crow", "pigeon", "crow"])
+    
+    Notes:
+    - Use ByteTrack for object tracking to maintain ID consistency
+    - Automatically release video resources to ensure there is no memory leak
+    - In case of an error, it will return the detected labels and print the error message.
     """
 
+
+    # Initialize the label list to store the detection results for the entire video.
     labels = []
 
     try:
@@ -144,8 +208,12 @@ def video_prediction(video_path, result_filename=None, save_dir = "./video_predi
 
         # Process the video frame by frame
         while cap.isOpened():
+            # Read the next frame
+            # # ret: Whether the frame was successfully read
+            # # frame: Current frame image (BGR format)
             ret, frame = cap.read()
-            if not ret:  # End of the video
+            # End of the video
+            if not ret:  
                 break
 
             # Make predictions on the current frame using the YOLO model
