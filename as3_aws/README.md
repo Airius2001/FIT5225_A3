@@ -30,8 +30,3 @@ A web-based platform for bird enthusiasts to upload, analyze, and manage their b
 
 ## Installation
 
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/yourusername/mbb-app.git
-cd mbb-app
