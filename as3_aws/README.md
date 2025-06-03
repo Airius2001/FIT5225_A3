@@ -1,58 +1,37 @@
-# 文件查询系统
+# MBB - Media Bird Base
 
-这是一个基于React的文件上传和查询系统，提供简单的Web界面来上传文件和执行查询操作。
+A web-based platform for bird enthusiasts to upload, analyze, and manage their bird observation media files with AI-powered species detection.
 
-## 功能特点
+## Features
 
-- 文件上传：支持拖放或点击选择文件
-- 文件查询：可以对上传的文件执行查询操作
-- 实时结果显示：查询结果即时展示
-- 现代化UI：使用Material-UI组件库
+- 🦜 **AI Species Detection**: Automatically identify bird species from uploaded images, videos, and audio files
+- 📸 **Multi-format Support**: Upload images (JPG, PNG), videos (MP4, AVI), and audio files (MP3, WAV)
+- 🔍 **Smart Search**: Filter observations by species, media type, date range, and location
+- 📊 **Statistics Dashboard**: Track your observation statistics and storage usage
+- 🔐 **User Authentication**: Secure registration, login, and password reset functionality
+- 📁 **File Management**: Organize and tag your bird observations
+- 🌍 **Location Tracking**: Record and search observations by location
 
-## 技术栈
+## Tech Stack
 
-- React 18
-- TypeScript
-- Material-UI
-- React Dropzone
-- AWS SDK for JavaScript
+- **Backend**: Flask (Python 3.9+)
+- **Database**: SQLAlchemy with PostgreSQL/SQLite
+- **Authentication**: Werkzeug security
+- **File Storage**: Local storage (AWS S3 ready)
+- **Frontend**: HTML5, CSS3, JavaScript
+- **Deployment**: AWS EC2/Elastic Beanstalk ready
 
-## 安装说明
+## Prerequisites
 
-1. 安装Node.js (推荐版本 14.x 或更高)
+- Python 3.9 or higher
+- pip (Python package manager)
+- PostgreSQL (for production) or SQLite (for development)
+- Git
 
-2. 安装项目依赖：
+## Installation
+
+### 1. Clone the repository
+
 ```bash
-npm install
-```
-
-3. 配置AWS凭证：
-   - 在项目根目录创建 `.env` 文件
-   - 添加以下环境变量：
-   ```
-   REACT_APP_AWS_ACCESS_KEY_ID=你的AWS访问密钥ID
-   REACT_APP_AWS_SECRET_ACCESS_KEY=你的AWS秘密访问密钥
-   REACT_APP_AWS_REGION=你的AWS区域
-   ```
-
-4. 启动开发服务器：
-```bash
-npm start
-```
-
-## 使用说明
-
-1. 文件上传：
-   - 将文件拖放到上传区域，或点击选择文件
-   - 点击"上传文件"按钮开始上传
-
-2. 执行查询：
-   - 在查询输入框中输入查询内容
-   - 点击"提交查询"按钮执行查询
-   - 查询结果将显示在下方
-
-## 注意事项
-
-- 请确保AWS凭证配置正确
-- 上传文件大小可能有限制
-- 建议使用现代浏览器以获得最佳体验 
+git clone https://github.com/yourusername/mbb-app.git
+cd mbb-app
