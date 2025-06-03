@@ -28,5 +28,3 @@ A web-based platform for bird enthusiasts to upload, analyze, and manage their b
 - PostgreSQL (for production) or SQLite (for development)
 - Git
 
-## Installation
-
