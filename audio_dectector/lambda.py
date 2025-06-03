@@ -43,8 +43,8 @@ def handler(event, context):
 def audio_dectector(audio_path):
     # Load and initialize the BirdNET-Analyzer models.
     analyzer = Analyzer(
-        classifier_model_path ="model/BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
-        classifier_labels_path ="model/BirdNET_GLOBAL_6K_V2.4_Labels.txt",
+        classifier_model_path ="./BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+        classifier_labels_path ="./BirdNET_GLOBAL_6K_V2.4_Labels.txt",
     )
 
     recording = Recording(
@@ -55,8 +55,8 @@ def audio_dectector(audio_path):
 
     recording.analyze()
     labels = []
-    for dectection in recording.dectections:
-        labels.append(dectection["common_name"])
+    for detection in recording.detections:
+        labels.append(detection["common_name"])
 
     return labels
 
