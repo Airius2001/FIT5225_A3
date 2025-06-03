@@ -172,7 +172,7 @@ def video_prediction(video_path, result_filename=None, save_dir = "./video_predi
         print("Video processing complete, Released resources.")
 
 
-
+# test the function locally
 if __name__ == '__main__':
     print("predicting...")
     print(image_prediction("./test_images/crows_1.jpg"))

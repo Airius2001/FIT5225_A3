@@ -11,6 +11,7 @@ s3_client = boto3.client('s3')
 dynamodb = boto3.resource('dynamodb')
 TABLE = "media"
 
+# s3 event handling logic
 def handler(event, context):
     s3_client = boto3.client('s3')
 
@@ -42,7 +43,7 @@ def handler(event, context):
 def audio_dectector(audio_path):
     # Load and initialize the BirdNET-Analyzer models.
     analyzer = Analyzer(
-        classifier_model_path ="model/BirdNET_GLOBAL_6K_V2.4_Model_FP16.tflite",
+        classifier_model_path ="model/BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
         classifier_labels_path ="model/BirdNET_GLOBAL_6K_V2.4_Labels.txt",
     )
 
@@ -58,3 +59,8 @@ def audio_dectector(audio_path):
         labels.append(dectection["common_name"])
 
     return labels
+
+# test the function locally
+if __name__ == '__main__':
+    print("predicting...")
+    print(audio_dectector("./test_audios/soundscape.wav"))
