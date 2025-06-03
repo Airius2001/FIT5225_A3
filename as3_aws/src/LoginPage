@@ -1,0 +1,169 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import ForgotPasswordModal from './ForgotPasswordModal';
+import './AuthStyles.css';
+
+const LoginPage = () => {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
+  const [errors, setErrors] = useState({});
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // 邮箱格式验证
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // 密码格式验证
+  const validatePassword = (password) => {
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+    return passwordRegex.test(password);
+  };
+
+  // 表单验证
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.email) {
+      newErrors.email = '邮箱不能为空';
+    } else if (!validateEmail(formData.email)) {
+      newErrors.email = '请输入有效的邮箱地址';
+    }
+
+    if (!formData.password) {
+      newErrors.password = '密码不能为空';
+    } else if (!validatePassword(formData.password)) {
+      newErrors.password = '密码至少8位，需包含大写字母、小写字母和数字';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // 处理输入变化
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    // 清除对应字段的错误
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  // 模拟 Cognito 登录
+  const handleLogin = async () => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+    try {
+      // 模拟 API 调用
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // 模拟验证用户凭据
+      if (formData.email === 'test@example.com' && formData.password === 'Test1234') {
+        // 生成模拟 JWT Token
+        const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJpYXQiOjE2MzYwMDAwMDB9.mock-signature';
+        localStorage.setItem('jwtToken', mockToken);
+        localStorage.setItem('userEmail', formData.email);
+
+        // 重定向到 upload 页面
+        navigate('/upload');
+      } else {
+        setErrors({ general: '用户名或密码错误' });
+      }
+    } catch (error) {
+      setErrors({ general: '登录失败，请稍后重试' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 处理表单提交
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    handleLogin();
+  };
+
+  return (
+    <div className="auth-container">
+      <div className="auth-card">
+        <h1 className="auth-title">BirdTag System</h1>
+
+        <form onSubmit={handleSubmit} className="auth-form">
+          {errors.general && (
+            <div className="error-message">{errors.general}</div>
+          )}
+
+          <div className="form-group">
+            <label htmlFor="email">Email *</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className={errors.email ? 'error' : ''}
+              placeholder="请输入邮箱"
+            />
+            {errors.email && (
+              <span className="field-error">{errors.email}</span>
+            )}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="password">Password *</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              className={errors.password ? 'error' : ''}
+              placeholder="请输入密码"
+            />
+            {errors.password && (
+              <span className="field-error">{errors.password}</span>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            className="submit-button"
+            disabled={loading}
+          >
+            {loading ? '登录中...' : '登录'}
+          </button>
+        </form>
+
+        <div className="auth-links">
+          <a href="/register" className="auth-link">
+            切换到注册
+          </a>
+          <button
+            className="auth-link forgot-password"
+            onClick={() => setShowForgotPassword(true)}
+          >
+            忘记密码
+          </button>
+        </div>
+      </div>
+
+      {showForgotPassword && (
+        <ForgotPasswordModal onClose={() => setShowForgotPassword(false)} />
+      )}
+    </div>
+  );
+};
+
+export default LoginPage;

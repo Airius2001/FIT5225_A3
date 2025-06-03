@@ -1,0 +1,566 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Monash Birdy Buddies{% endblock %}
+
+{% block extra_css %}
+<style>
+    .welcome-header {
+        font-size: 2rem;
+        color: #333;
+        margin-bottom: 2rem;
+        font-weight: 600;
+    }
+
+    .stats-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        padding: 1.5rem;
+        border-radius: 8px;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1565c0;
+    }
+
+    .stat-label {
+        color: #666;
+        margin-top: 0.5rem;
+    }
+
+    .card h3 {
+        color: #1565c0;
+        margin-bottom: 1.5rem;
+        font-size: 1.4rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .card h3::before {
+        content: '';
+        width: 4px;
+        height: 24px;
+        background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+        margin-right: 12px;
+        border-radius: 2px;
+    }
+
+    .upload-zone {
+        border: 2px dashed #cbd5e0;
+        border-radius: 8px;
+        padding: 2rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        background: #f8f9fa;
+    }
+
+    .upload-zone:hover {
+        border-color: #1565c0;
+        background: #e3f2fd;
+    }
+
+    .file-preview {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .preview-item {
+        position: relative;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .preview-item img {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+    }
+
+    .preview-item .file-info {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0,0,0,0.7);
+        color: white;
+        padding: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .recent-uploads {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .upload-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        border-bottom: 1px solid #e2e8f0;
+        transition: background 0.3s ease;
+    }
+
+    .upload-item:hover {
+        background: #f8f9fa;
+    }
+
+    .upload-item-icon {
+        font-size: 2rem;
+        margin-right: 1rem;
+    }
+
+    .upload-item-details {
+        flex: 1;
+    }
+
+    .upload-item-name {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .upload-item-meta {
+        font-size: 0.875rem;
+        color: #666;
+        margin-top: 0.25rem;
+    }
+
+    .filter-section {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .filter-group {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .action-card {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+
+    .action-card:hover {
+        border-color: #1565c0;
+        transform: translateY(-2px);
+    }
+
+    .action-icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .species-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+
+    .species-badge {
+        background: #1565c0;
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 16px;
+        font-size: 0.875rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 class="welcome-header">Welcome back, {{ username }}! 🦜</h2>
+
+<!-- Statistics Dashboard -->
+<div class="stats-container">
+    <div class="stat-card">
+        <div class="stat-number">0</div>
+        <div class="stat-label">Total Uploads</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">0</div>
+        <div class="stat-label">Species Identified</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">0</div>
+        <div class="stat-label">This Month</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">0 GB</div>
+        <div class="stat-label">Storage Used</div>
+    </div>
+</div>
+
+<!-- File Upload Section -->
+<div class="card">
+    <h3>📤 Upload Bird Media</h3>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <div class="form-group">
+            <div class="upload-zone">
+                <label for="file" style="cursor: pointer;">
+                    <span style="font-size: 3rem;">📁</span><br>
+                    <strong>Choose files or drag & drop</strong><br>
+                    <small>Supports: Images (jpg, png), Videos (mp4, avi), Audio (mp3, wav)</small>
+                </label>
+                <input type="file" id="file" name="file" multiple accept=".jpg,.jpeg,.png,.gif,.mp4,.avi,.mov,.mp3,.wav,.m4a" style="display: none;">
+            </div>
+        </div>
+
+        <!-- Additional metadata fields -->
+        <div class="filter-section">
+            <div class="filter-group">
+                <label for="location">Location</label>
+                <input type="text" id="location" name="location" placeholder="e.g., Monash Clayton Campus">
+            </div>
+            <div class="filter-group">
+                <label for="date">Observation Date</label>
+                <input type="date" id="date" name="date">
+            </div>
+            <div class="filter-group">
+                <label for="notes">Notes</label>
+                <input type="text" id="notes" name="notes" placeholder="Additional observations">
+            </div>
+        </div>
+
+        <button type="submit" class="btn">Upload & Auto-Tag</button>
+    </form>
+    <div id="uploadResult" style="margin-top: 1rem;"></div>
+    <div id="filePreview" class="file-preview"></div>
+</div>
+
+<!-- Search and Filter Section -->
+<div class="card">
+    <h3>🔍 Search Bird Database</h3>
+    <form id="searchForm">
+        <div class="filter-section">
+            <div class="filter-group">
+                <label for="species">Species</label>
+                <select id="species" name="species">
+                    <option value="">All Species</option>
+                    <option value="cockatoo">Cockatoo</option>
+                    <option value="kookaburra">Kookaburra</option>
+                    <option value="magpie">Magpie</option>
+                    <option value="rainbow_lorikeet">Rainbow Lorikeet</option>
+                    <option value="galah">Galah</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="mediaType">Media Type</label>
+                <select id="mediaType" name="mediaType">
+                    <option value="">All Types</option>
+                    <option value="image">Images</option>
+                    <option value="video">Videos</option>
+                    <option value="audio">Audio</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="dateRange">Date Range</label>
+                <select id="dateRange" name="dateRange">
+                    <option value="">All Time</option>
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                    <option value="year">This Year</option>
+                </select>
+            </div>
+        </div>
+        <button type="submit" class="btn">Search</button>
+    </form>
+</div>
+
+<!-- Quick Actions -->
+<div class="card">
+    <h3>⚡ Quick Actions</h3>
+    <div class="quick-actions">
+        <div class="action-card" onclick="alert('Feature coming soon!')">
+            <div class="action-icon">📊</div>
+            <strong>Generate Report</strong>
+            <p style="font-size: 0.875rem; color: #666; margin-top: 0.5rem;">Species statistics</p>
+        </div>
+        <div class="action-card" onclick="alert('Feature coming soon!')">
+            <div class="action-icon">🗺️</div>
+            <strong>View Map</strong>
+            <p style="font-size: 0.875rem; color: #666; margin-top: 0.5rem;">Observation locations</p>
+        </div>
+        <div class="action-card" onclick="alert('Feature coming soon!')">
+            <div class="action-icon">📥</div>
+            <strong>Export Data</strong>
+            <p style="font-size: 0.875rem; color: #666; margin-top: 0.5rem;">Download CSV</p>
+        </div>
+        <div class="action-card" onclick="alert('Feature coming soon!')">
+            <div class="action-icon">🏷️</div>
+            <strong>Manage Tags</strong>
+            <p style="font-size: 0.875rem; color: #666; margin-top: 0.5rem;">Edit classifications</p>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Uploads -->
+<div class="card">
+    <h3>📋 Recent Uploads</h3>
+    <div class="recent-uploads" id="recentUploads">
+        <div class="upload-item">
+            <div class="upload-item-icon">🖼️</div>
+            <div class="upload-item-details">
+                <div class="upload-item-name">No recent uploads</div>
+                <div class="upload-item-meta">Start uploading to see your bird observations here</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Results (Initially Hidden) -->
+<div class="card" id="searchResults" style="display: none;">
+    <h3>🔎 Search Results</h3>
+    <div id="resultContent"></div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// File preview functionality
+document.getElementById('file').addEventListener('change', function(e) {
+    const files = e.target.files;
+    const previewContainer = document.getElementById('filePreview');
+    previewContainer.innerHTML = '';
+
+    Array.from(files).forEach(file => {
+        const previewItem = document.createElement('div');
+        previewItem.className = 'preview-item';
+
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewItem.innerHTML = `
+                    <img src="${e.target.result}" alt="${file.name}">
+                    <div class="file-info">
+                        <div>📸 ${file.name}</div>
+                        <div style="font-size: 0.75rem;">${(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                    </div>
+                `;
+            };
+            reader.readAsDataURL(file);
+        } else if (file.type.startsWith('video/')) {
+            previewItem.innerHTML = `
+                <div style="background: #f0f0f0; height: 150px; display: flex; align-items: center; justify-content: center;">
+                    <span style="font-size: 3rem;">🎥</span>
+                </div>
+                <div class="file-info">
+                    <div>${file.name}</div>
+                    <div style="font-size: 0.75rem;">${(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                </div>
+            `;
+        } else if (file.type.startsWith('audio/')) {
+            previewItem.innerHTML = `
+                <div style="background: #f0f0f0; height: 150px; display: flex; align-items: center; justify-content: center;">
+                    <span style="font-size: 3rem;">🎵</span>
+                </div>
+                <div class="file-info">
+                    <div>${file.name}</div>
+                    <div style="font-size: 0.75rem;">${(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                </div>
+            `;
+        }
+
+        previewContainer.appendChild(previewItem);
+    });
+});
+
+// Drag and drop functionality
+const uploadZone = document.querySelector('.upload-zone');
+const fileInput = document.getElementById('file');
+
+uploadZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadZone.style.borderColor = '#1565c0';
+    uploadZone.style.background = '#e3f2fd';
+});
+
+uploadZone.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    uploadZone.style.borderColor = '#cbd5e0';
+    uploadZone.style.background = '#f8f9fa';
+});
+
+uploadZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadZone.style.borderColor = '#cbd5e0';
+    uploadZone.style.background = '#f8f9fa';
+
+    if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        // Trigger change event to show preview
+        const event = new Event('change', { bubbles: true });
+        fileInput.dispatchEvent(event);
+    }
+});
+
+// File upload handler
+document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const fileInput = document.getElementById('file');
+    const files = fileInput.files;
+    const location = document.getElementById('location').value;
+    const date = document.getElementById('date').value;
+    const notes = document.getElementById('notes').value;
+
+    if (!files.length) {
+        alert('Please select at least one file');
+        return;
+    }
+
+    const formData = new FormData();
+    for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+    }
+    formData.append('location', location);
+    formData.append('date', date);
+    formData.append('notes', notes);
+
+    const uploadResult = document.getElementById('uploadResult');
+    uploadResult.innerHTML = '<div class="alert alert-info">🔄 Uploading and analyzing files...</div>';
+
+    try {
+        const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            uploadResult.innerHTML = `
+                <div class="alert alert-success">
+                    ✅ ${result.message}
+                    ${result.species ? `<div class="species-badges">Detected species: ${result.species.map(s => `<span class="species-badge">${s}</span>`).join('')}</div>` : ''}
+                </div>
+            `;
+            fileInput.value = '';
+            document.getElementById('filePreview').innerHTML = '';
+            updateRecentUploads();
+            updateStatistics();
+        } else {
+            uploadResult.innerHTML = `<div class="alert alert-error">❌ ${result.message}</div>`;
+        }
+    } catch (error) {
+        uploadResult.innerHTML = '<div class="alert alert-error">❌ Upload failed, please try again</div>';
+    }
+});
+
+// Search handler
+document.getElementById('searchForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const species = document.getElementById('species').value;
+    const mediaType = document.getElementById('mediaType').value;
+    const dateRange = document.getElementById('dateRange').value;
+
+    try {
+        const response = await fetch('/search', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                species: species,
+                mediaType: mediaType,
+                dateRange: dateRange
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            const searchResults = document.getElementById('searchResults');
+            searchResults.style.display = 'block';
+
+            let resultsHTML = `<p>Found ${result.count} results</p><div class="file-preview">`;
+
+            result.files.forEach(file => {
+                resultsHTML += `
+                    <div class="preview-item">
+                        ${file.type === 'image' ? `<img src="${file.thumbnail}" alt="${file.name}">` :
+                          file.type === 'video' ? '<div style="background: #f0f0f0; height: 150px; display: flex; align-items: center; justify-content: center;"><span style="font-size: 3rem;">🎥</span></div>' :
+                          '<div style="background: #f0f0f0; height: 150px; display: flex; align-items: center; justify-content: center;"><span style="font-size: 3rem;">🎵</span></div>'}
+                        <div class="file-info">
+                            <div>${file.name}</div>
+                            <div style="font-size: 0.75rem;">${file.species} • ${file.date}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            resultsHTML += '</div>';
+            document.getElementById('resultContent').innerHTML = resultsHTML;
+
+            // Smooth scroll to results
+            searchResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+            alert(result.message);
+        }
+    } catch (error) {
+        alert('Search failed, please try again');
+    }
+});
+
+// Update recent uploads (mock function)
+function updateRecentUploads() {
+    // This would fetch from the backend in a real application
+    const recentUploads = document.getElementById('recentUploads');
+    const currentTime = new Date().toLocaleString();
+
+    const newUpload = `
+        <div class="upload-item">
+            <div class="upload-item-icon">🖼️</div>
+            <div class="upload-item-details">
+                <div class="upload-item-name">bird_photo_${Date.now()}.jpg</div>
+                <div class="upload-item-meta">Uploaded just now • Species: Analyzing...</div>
+            </div>
+        </div>
+    `;
+
+    recentUploads.innerHTML = newUpload + recentUploads.innerHTML;
+}
+
+// Update statistics (mock function)
+function updateStatistics() {
+    // This would fetch from the backend in a real application
+    const stats = document.querySelectorAll('.stat-number');
+    stats[0].textContent = parseInt(stats[0].textContent) + 1; // Total uploads
+    stats[2].textContent = parseInt(stats[2].textContent) + 1; // This month
+}
+
+// Load initial statistics
+window.addEventListener('load', () => {
+    // This would fetch actual stats from the backend
+    console.log('Loading user statistics...');
+});
+</script>
+{% endblock %}
