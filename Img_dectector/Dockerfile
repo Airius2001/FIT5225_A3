@@ -1,15 +1,20 @@
+# Use the official AWS Lambda Python 3.10 base image
 FROM public.ecr.aws/lambda/python:3.10
 
 # Set working directory
 WORKDIR /var/task
 
-# Copy code and model
-COPY lambda.py ./
-COPY model.pt ./
-COPY requirements.txt ./
+# Install system packages required for building dependencies
+RUN yum -y update && yum install -y gcc gcc-c++ make cmake unzip git
 
-# Install dependencies
-RUN pip install -r requirements.txt
+# Upgrade pip and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip \
+ && pip install --no-cache-dir -r requirements.txt
 
-# Lambda entrypoint
+# Copy the application code and model
+COPY lambda.py .
+COPY model.pt .
+
+# Set the Lambda handler
 CMD ["lambda.handler"]
