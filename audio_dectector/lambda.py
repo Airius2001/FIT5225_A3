@@ -1,11 +1,12 @@
 import os
 import boto3
 from collections import Counter
-
-
 # COPY FROM https://joeweiss.github.io/birdnetlib/#using-birdnet-analyzer 
 from birdnetlib import Recording
 from birdnetlib.analyzer import Analyzer
+# create a cache folder to solve out the aws bug
+os.environ["NUMBA_CACHE_DIR"] = "/tmp/numba_cache"
+os.makedirs("/tmp/numba_cache", exist_ok=True)
 
 s3_client = boto3.client('s3')
 dynamodb = boto3.resource('dynamodb')
@@ -23,7 +24,7 @@ def handler(event, context):
         tmp_path = f"/tmp/{os.path.basename(key)}"
         s3_client.download_file(bucket, key, tmp_path)
 
-        # Call the image_prediction function
+        # Call the audio_prediction function
         labels = []
         if key.startswith('audios/'): # the folder name from AWS S3 bucket
             labels = audio_dectector(tmp_path)
@@ -41,6 +42,12 @@ def handler(event, context):
 
 # audio dectector function
 def audio_dectector(audio_path):
+
+    # print for checking the bugs
+    print(f"Analyzing audio at: {audio_path}")
+    print(f"File size: {os.path.getsize(audio_path)} bytes")
+    print(f"File exists: {os.path.exists(audio_path)}")
+
     # Load and initialize the BirdNET-Analyzer models.
     analyzer = Analyzer(
         classifier_model_path ="./BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
@@ -53,11 +60,13 @@ def audio_dectector(audio_path):
         min_conf=0.5,
     )
 
-    recording.analyze()
-    labels = []
-    for detection in recording.detections:
-        labels.append(detection["common_name"])
+    try:
+        recording.analyze()
+    except Exception as e:
+        print(f"Audio analyze failed: {e}")
+        raise
 
+    labels = [detection["common_name"] for detection in recording.detections]
     return labels
 
 # test the function locally
