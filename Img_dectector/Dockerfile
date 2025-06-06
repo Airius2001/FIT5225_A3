@@ -1,20 +1,26 @@
-# Use the official AWS Lambda Python 3.10 base image
-FROM public.ecr.aws/lambda/python:3.10
+# This is the example copied dockerfile from Official documentation 
+# reference from : https://docs.aws.amazon.com/lambda/latest/dg/python-image.html
 
-# Set working directory
-WORKDIR /var/task
+FROM public.ecr.aws/lambda/python:3.12
 
-# Install system packages required for building dependencies
-RUN yum -y update && yum install -y gcc gcc-c++ make cmake unzip git
+# Copy requirements.txt
+COPY requirements.txt ${LAMBDA_TASK_ROOT}
 
-# Upgrade pip and install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip \
- && pip install --no-cache-dir -r requirements.txt
+# Install the specified packages
+RUN pip install -r requirements.txt
 
-# Copy the application code and model
-COPY lambda.py .
-COPY model.pt .
 
-# Set the Lambda handler
-CMD ["lambda.handler"]
+# Install the native GUI/GL dependencies for full OpenCV (for solving the libGL bugs)
+RUN dnf install -y \
+    mesa-libGL \
+    mesa-libGLU \
+    glib2 \
+&& dnf clean all
+
+
+# Copy necessary function code
+COPY lambda.py ${LAMBDA_TASK_ROOT}
+COPY model.pt ${LAMBDA_TASK_ROOT}
+
+# Set the CMD to your handler (could also be done as a parameter override outside of the Dockerfile)
+CMD [ "lambda.handler" ]
