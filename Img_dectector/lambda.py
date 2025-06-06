@@ -33,65 +33,69 @@ def handler(event, context):
     - Errors will be logged but will not interrupt processing
     """
 
-    # Traverse all records in the event
     for record in event['Records']:
-        # Analysis of S3 Event Basic Information
-        bucket = record['s3']['bucket']['name']
-        # File object key (path)
-        key = record['s3']['object']['key'] 
-
-        # Download the file to the Lambda temporary directory
-        # tmp_path: Local temporary file path (e.g., /tmp/filename.jpg)
-
-        tmp_path = f"/tmp/{key.split('/')[-1]}"
-        s3_client.download_file(bucket, key, tmp_path)
-
-        # Call the image_prediction function
-        labels = []
-        if key.startswith('images/'): # the folder name from AWS S3 bucket
-            labels = image_prediction(tmp_path)
-            # resize the image size to thumbnails
-            b = create_thumbnail(tmp_path)
-            s3_client.put_object(
-                Bucket = bucket,
-                Key = f"thumbnails/{key.split('/')[-1]}",
-                Body = b,
-                ContentType = 'mimetype',
-                ContentDisposition = 'inline'
-            )
-
-        elif key.startswith('videos/'): # the folder name from AWS S3 bucket
-            labels = video_prediction(tmp_path)
-        else:
-            print(f'Unsupported file type for key: {key}')
-            return
-        
-        # Count the occurrences of tags (using Counter)
-        # For example: ["crow","pigeon","crow"] -> {"crow":2, "pigeon":1}
-        labels_total = Counter(labels)
-
         try:
+            # Analysis of Bucket and Key
+            bucket = record['s3']['bucket']['name']
+            key = record['s3']['object']['key']
+            filename = key.split('/')[-1]
+            tmp_path = f"/tmp/{filename}"
+
+            print(f"Trying to download s3://{bucket}/{key} → {tmp_path}")
+            s3_client.download_file(bucket, key, tmp_path)
+            print("✅ File downloaded")
+
+            labels = []
+
+            # Image processing branch
+            if key.startswith('images/'):
+                labels = image_prediction(tmp_path)
+                b = create_thumbnail(tmp_path)
+                if b is not None:
+                    s3_client.put_object(
+                        Bucket=bucket,
+                        Key=f"thumbnails/{filename}",
+                        Body=b,
+                        ContentType='image/jpeg',
+                        ContentDisposition='inline'
+                    )
+                    print(f"✅ Thumbnail uploaded to thumbnails/{filename}")
+                else:
+                    print("⚠️ Failed to create thumbnail.")
+
+            # Video processing branch
+            elif key.startswith('videos/'):
+                labels = video_prediction(tmp_path)
+
+            else:
+                print(f"⚠️ Unsupported file type: {key}")
+                continue
+
+            # Label statistics & store in DynamoDB
+            labels_total = Counter(labels)
+
             dynamodb.Table(TABLE).put_item(
-                Item = {
-                    's3-url': "https://{0}.s3.us-east-1.amazonaws.com/{1}".format(bucket,key),
+                Item={
+                    's3-url': f"https://{bucket}.s3.amazonaws.com/{key}",
                     'tags': labels_total
                 }
             )
-        except boto3.ClientError as err:
-            print(f"Error saving to DynamoDB: {err}")
+            print("✅ Tags saved to DynamoDB")
+
         except Exception as e:
-            print(f"Unexpected error occured: {e}")
+            print(f"❌ Error processing file {key}: {e}")
+            continue  # Does not affect the processing of other records
 
 
 
 #  transfer the image to thumbnail image
-def create_thumbnail(image_path, width = 150, height = 150):
+def create_thumbnail(image_path, width = 200, height = 200):
     """
     Generate a thumbnail from the image file at the given path and return the binary data of the thumbnail.
     Parameters:
         image_path (str): The path to the original image 
-        filewidth (int): The width of the thumbnail (default 150px)
-        height (int): The height of the thumbnail (default 150px)
+        filewidth (int): The width of the thumbnail (set it as 200px)
+        height (int): The height of the thumbnail (set it as 200px)
         Returns:bytes: The binary data of the thumbnail, returns None on failure
         Raises:No explicit exceptions are raised, but file operation-related exceptions may be implicitly raised.
     """
